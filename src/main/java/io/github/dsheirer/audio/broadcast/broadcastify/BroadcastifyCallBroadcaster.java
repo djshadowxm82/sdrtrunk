@@ -34,6 +34,7 @@ import io.github.dsheirer.identifier.Form;
 import io.github.dsheirer.identifier.Identifier;
 import io.github.dsheirer.identifier.IdentifierClass;
 import io.github.dsheirer.identifier.Role;
+import io.github.dsheirer.identifier.alias.TalkerAliasIdentifier;
 import io.github.dsheirer.identifier.configuration.AliasListConfigurationIdentifier;
 import io.github.dsheirer.identifier.configuration.ConfigurationLongIdentifier;
 import io.github.dsheirer.identifier.patch.PatchGroup;
@@ -454,30 +455,19 @@ public class BroadcastifyCallBroadcaster extends AbstractAudioBroadcaster<Broadc
     }
 
     /**
-     * Resolves the alias name for the FROM (source radio) identifier, or null if no alias is found.
+     * Resolves the over-the-air talker alias for the FROM (source radio) identifier, acquired in real-time from RF
+     * (e.g. P25 Motorola Talker Alias or DMR Talker Alias). Returns null if no OTA alias was received for this call.
      * This is sent as the srcId_alias field in Broadcastify uploads.
      */
-    private String getFromAlias(AudioRecording audioRecording)
+    private static String getFromAlias(AudioRecording audioRecording)
     {
-        Identifier identifier = audioRecording.getIdentifierCollection().getFromIdentifier();
-
-        if(identifier != null)
+        for(Identifier identifier: audioRecording.getIdentifierCollection().getIdentifiers(Role.FROM))
         {
-            AliasListConfigurationIdentifier config =
-                audioRecording.getIdentifierCollection().getAliasListConfiguration();
-
-            if(config != null)
+            if(identifier instanceof TalkerAliasIdentifier talkerAliasIdentifier)
             {
-                AliasList aliasList = mAliasModel.getAliasList(config.getValue());
-
-                if(aliasList != null)
+                if(talkerAliasIdentifier.isValid())
                 {
-                    List<Alias> aliases = aliasList.getAliases(identifier);
-
-                    if(!aliases.isEmpty())
-                    {
-                        return aliases.get(0).getName();
-                    }
+                    return talkerAliasIdentifier.getValue();
                 }
             }
         }
