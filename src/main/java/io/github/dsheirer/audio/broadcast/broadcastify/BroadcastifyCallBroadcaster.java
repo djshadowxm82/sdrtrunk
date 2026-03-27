@@ -253,6 +253,8 @@ public class BroadcastifyCallBroadcaster extends AbstractAudioBroadcaster<Broadc
                 String radioId = getFrom(audioRecording);
                 float frequency = getFrequency(audioRecording);
 
+                String radioIdAlias = getFromAlias(audioRecording);
+
                 BroadcastifyCallBuilder bodyBuilder = new BroadcastifyCallBuilder();
                 bodyBuilder.addPart(FormField.API_KEY, getBroadcastConfiguration().getApiKey())
                     .addPart(FormField.SYSTEM_ID, getBroadcastConfiguration().getSystemID())
@@ -262,6 +264,11 @@ public class BroadcastifyCallBroadcaster extends AbstractAudioBroadcaster<Broadc
                     .addPart(FormField.RADIO_ID, radioId)
                     .addPart(FormField.FREQUENCY, frequency)
                     .addPart(FormField.ENCODING, ENCODING_TYPE_MP3);
+
+                if(radioIdAlias != null && !radioIdAlias.isEmpty())
+                {
+                    bodyBuilder.addPart(FormField.RADIO_ID_ALIAS, radioIdAlias);
+                }
 
                 try
                 {
@@ -444,6 +451,38 @@ public class BroadcastifyCallBroadcaster extends AbstractAudioBroadcaster<Broadc
         }
 
         return "0";
+    }
+
+    /**
+     * Resolves the alias name for the FROM (source radio) identifier, or null if no alias is found.
+     * This is sent as the srcId_alias field in Broadcastify uploads.
+     */
+    private String getFromAlias(AudioRecording audioRecording)
+    {
+        Identifier identifier = audioRecording.getIdentifierCollection().getFromIdentifier();
+
+        if(identifier != null)
+        {
+            AliasListConfigurationIdentifier config =
+                audioRecording.getIdentifierCollection().getAliasListConfiguration();
+
+            if(config != null)
+            {
+                AliasList aliasList = mAliasModel.getAliasList(config.getValue());
+
+                if(aliasList != null)
+                {
+                    List<Alias> aliases = aliasList.getAliases(identifier);
+
+                    if(!aliases.isEmpty())
+                    {
+                        return aliases.get(0).getName();
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
